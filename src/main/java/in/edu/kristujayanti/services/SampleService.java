@@ -19,6 +19,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 
 import java.security.MessageDigest;
 import java.time.format.DateTimeFormatter;
@@ -86,6 +87,34 @@ public class SampleService { Vertx vertx = Vertx.vertx();
         }
 
         ctx.response().end(jarr.encodePrettily());
+
+    }
+    public void enrollcourse(RoutingContext ctx){
+        ctx.response().setChunked(true);
+
+        String name = ctx.request().getParam("name");
+        String corname = ctx.request().getParam("course");
+        Bson filter2 = Filters.regex("course", corname);
+
+        for(Document docs: course.find().filter(filter2)){
+            JsonObject jdoc=new JsonObject(docs.toJson());
+            int st=docs.getInteger("seats");
+            if(st<1){
+                break;
+            }
+            else{
+                Document doc=new Document("student",name).append("Courses",jdoc);
+                InsertOneResult ins=enroll.insertOne(doc);
+                if(ins.wasAcknowledged()){
+                    ctx.response().write("Successfully enrolled");
+                }
+
+
+            }
+
+        }
+
+
 
 
 

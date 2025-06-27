@@ -1,6 +1,9 @@
 package in.edu.kristujayanti.services;
 
 
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
+import io.vertx.core.json.JsonArray;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -15,6 +18,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.security.MessageDigest;
 import java.time.format.DateTimeFormatter;
@@ -39,18 +43,53 @@ public class SampleService { Vertx vertx = Vertx.vertx();
         String pwd=generateRandomOrderID(8);
         sendemail(pwd,user);
 
+        String hashpass=hashit(pwd);
+        Document doc=new Document("user",user).append("pass",hashpass);
+        InsertOneResult ins=stud.insertOne(doc);
 
-//        String hashpass=hashit(pwd);
-//
-//        Document doc=new Document("user",user).append("pass",hashpass);
-//        InsertOneResult ins=stud.insertOne(doc);
-//
-//        if(ins.wasAcknowledged()) {
-//            ctx.response().end("Signed in successfully.");
-//
-//        }
+        if(ins.wasAcknowledged()) {
+            ctx.response().end("Signed in successfully.");
+
+        }
     }
 
+    public void userlog(RoutingContext ctx){
+        JsonObject login=ctx.getBodyAsJson();
+        JsonArray jarr = new JsonArray();
+        String user = login.getString("user");
+        String pwd = login.getString("pass");
+        String hashlog=hashit(pwd);
+        String status="";
+        ctx.response().setChunked(true);
+
+        for(Document doc:stud.find()){
+            String dbuser=doc.getString("user");
+            String dbpass=doc.getString("pass");
+
+            if(dbuser.equals(user)){
+                if(dbpass.equals(hashlog)){
+                    status="Login was successfull";
+                }
+                else{
+                    status="Password is Incorrect";
+                }
+            }
+            else{
+                status="Invalid Login Credentials";
+            }
+        }
+        ctx.response().write(status + "\n");
+        ctx.response().write("These are the Available courses:" + "\n");
+        Bson projection = Projections.fields(Projections.exclude("_id"));
+        for (Document doc : course.find().projection(projection)) {
+            jarr.add(new JsonObject(doc.toJson()));
+        }
+
+        ctx.response().end(jarr.encodePrettily());
+
+
+
+    }
 
     public String hashit (String pass) {
 
@@ -114,9 +153,9 @@ public class SampleService { Vertx vertx = Vertx.vertx();
             // set To email field
             message.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
             // set email subject field
-            message.setSubject("Hello from the java test 2");
+            message.setSubject("Use this Password to login to your Student Account.");
             // set the content of the email message
-            message.setText("how are you this is finally working woohooo!!!!");
+            message.setText("The Auto-generated password is: "+ pass);
 
             // send the email message
             Transport.send(message);

@@ -18,7 +18,7 @@ public class SampleHandler extends AbstractVerticle {
         SampleService smp= new SampleService();
 
         router.post("/signuser").handler(smp::usersign);
-//        router.post("/loguser").handler(smp::userlog);
+        router.post("/loguser").handler(smp::userlog);
 
 
 

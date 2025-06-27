@@ -20,6 +20,9 @@ public class SampleHandler extends AbstractVerticle {
         router.post("/signuser").handler(smp::usersign);
         router.post("/loguser").handler(smp::userlog);
 
+        router.post("/enroll").handler(smp::enrollcourse);
+
+
 
 
 

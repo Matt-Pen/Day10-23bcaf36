@@ -3,6 +3,8 @@ package in.edu.kristujayanti.services;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 import io.vertx.core.json.JsonArray;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
@@ -23,10 +25,13 @@ import org.bson.types.ObjectId;
 
 import java.security.MessageDigest;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
-public class SampleService { Vertx vertx = Vertx.vertx();
+public class SampleService {
+    Vertx vertx = Vertx.vertx();
     HttpServer server = vertx.createHttpServer();
     String connectionString = "mongodb://admin:admin@172.21.17.53:27017,172.21.17.54:27017,172.21.17.92:27017/";
     MongoClient mongoClient = MongoClients.create(connectionString);
@@ -38,45 +43,45 @@ public class SampleService { Vertx vertx = Vertx.vertx();
 
     public void usersign(RoutingContext ctx) {
         JsonObject signin = ctx.getBodyAsJson();
-        String user = signin.getString("email");
+        String user = signin.getString("user");
+        String name = signin.getString("name");
+
         ctx.response().setChunked(true);
-        ctx.response().write("Password has been sent to your Email\n"+"Login using the password that has been sent");
-        String pwd=generateRandomOrderID(8);
-        sendemail(pwd,user);
+        ctx.response().write("Password has been sent to your Email\n" + "Login using the password that has been sent");
+        String pwd = generateRandomOrderID(8);
+        sendemail(pwd, user);
 
-        String hashpass=hashit(pwd);
-        Document doc=new Document("user",user).append("pass",hashpass);
-        InsertOneResult ins=stud.insertOne(doc);
+        String hashpass = hashit(pwd);
+        Document doc = new Document("name", name).append("user", user).append("pass", hashpass);
+        InsertOneResult ins = stud.insertOne(doc);
 
-        if(ins.wasAcknowledged()) {
+        if (ins.wasAcknowledged()) {
             ctx.response().end("Signed in successfully.");
 
         }
     }
 
-    public void userlog(RoutingContext ctx){
-        JsonObject login=ctx.getBodyAsJson();
+    public void userlog(RoutingContext ctx) {
+        JsonObject login = ctx.getBodyAsJson();
         JsonArray jarr = new JsonArray();
         String user = login.getString("user");
         String pwd = login.getString("pass");
-        String hashlog=hashit(pwd);
-        String status="";
+        String hashlog = hashit(pwd);
+        String status = "";
         ctx.response().setChunked(true);
 
-        for(Document doc:stud.find()){
-            String dbuser=doc.getString("user");
-            String dbpass=doc.getString("pass");
+        for (Document doc : stud.find()) {
+            String dbuser = doc.getString("user");
+            String dbpass = doc.getString("pass");
 
-            if(dbuser.equals(user)){
-                if(dbpass.equals(hashlog)){
-                    status="Login was successfull";
+            if (dbuser.equals(user)) {
+                if (dbpass.equals(hashlog)) {
+                    status = "Login was successfull";
+                } else {
+                    status = "Password is Incorrect";
                 }
-                else{
-                    status="Password is Incorrect";
-                }
-            }
-            else{
-                status="Invalid Login Credentials";
+            } else {
+                status = "Invalid Login Credentials";
             }
         }
         ctx.response().write(status + "\n");
@@ -89,36 +94,72 @@ public class SampleService { Vertx vertx = Vertx.vertx();
         ctx.response().end(jarr.encodePrettily());
 
     }
-    public void enrollcourse(RoutingContext ctx){
+
+    public int enrollcourse(RoutingContext ctx) {
         ctx.response().setChunked(true);
+        int set=0;
 
         String name = ctx.request().getParam("name");
         String corname = ctx.request().getParam("course");
         Bson filter2 = Filters.regex("course", corname);
+        if (updenroll(name, corname) == 1) {
 
-        for(Document docs: course.find().filter(filter2)){
-            JsonObject jdoc=new JsonObject(docs.toJson());
-            int st=docs.getInteger("seats");
-            if(st<1){
+            ctx.response().write("Successfully enrolled.");
+            set=1;
+        }
+        if(set!=1){
+        for (Document docs : course.find().filter(filter2)) {
+            JsonObject jdoc = new JsonObject(docs.toJson());
+
+            int st = docs.getInteger("seats");
+            if (st < 1) {
                 break;
-            }
-            else{
-                Document doc=new Document("student",name).append("Courses",jdoc);
-                InsertOneResult ins=enroll.insertOne(doc);
-                if(ins.wasAcknowledged()){
+            } else {
+                Document courseDoc = Document.parse(jdoc.encode());
+                List<Document> coursesArray = Arrays.asList(courseDoc);
+                Document doc = new Document("student", name).append("Courses", coursesArray);
+                InsertOneResult ins = enroll.insertOne(doc);
+                if (ins.wasAcknowledged()) {
                     ctx.response().write("Successfully enrolled");
                 }
-
+                st = st - 1;
+                Bson update2 = Updates.set("seats", st);
+                UpdateResult result2 = course.updateOne(filter2, update2);
 
             }
-
         }
-
-
-
-
+        }
+        ctx.response().end();
+        return set;
 
     }
+
+    public int updenroll(String name, String crse) {
+
+        Bson filter2 = Filters.regex("student", name);
+        int set = 0;
+        for (Document docs : enroll.find().filter(filter2)) {
+            JsonObject jdoc = new JsonObject(docs.toJson());
+            if (jdoc.containsKey("student")) {
+                Bson filter3 = Filters.regex("course", crse);
+                System.out.println("in enroll else");
+                for (Document doc3 : course.find().filter(filter3)) {
+
+                    JsonObject jdoc2 = new JsonObject(doc3.toJson());
+                    Document courseDoc = Document.parse(jdoc2.encode());
+                    Bson update2 = Updates.addToSet("Courses", courseDoc);
+                    UpdateResult result2 = enroll.updateOne(filter2, update2);
+
+                }
+                set=1;
+            } else {
+                set = 0;
+                break;
+            }
+        }
+        return set;
+    }
+
 
     public String hashit (String pass) {
 

@@ -5,6 +5,7 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
+import in.edu.kristujayanti.secretclass;
 import io.vertx.core.json.JsonArray;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
@@ -31,9 +32,10 @@ import java.util.Properties;
 import java.util.Random;
 
 public class SampleService {
+    secretclass srt=new secretclass();
     Vertx vertx = Vertx.vertx();
     HttpServer server = vertx.createHttpServer();
-    String connectionString = "mongodb://admin:admin@172.21.17.53:27017,172.21.17.54:27017,172.21.17.92:27017/";
+    String connectionString = srt.constr;
     MongoClient mongoClient = MongoClients.create(connectionString);
     MongoDatabase database = mongoClient.getDatabase("CourseEnroll");
     MongoCollection<Document> stud = database.getCollection("Student");
@@ -190,11 +192,11 @@ public class SampleService {
     public void sendemail(String pass,String email){
         String to = email;
         // provide sender's email ID
-        String from = "23bcaf36@kristujayanti.com";
+        String from = srt.from;
 
         // provide Mailtrap's username
-        final String username = "mattheweapen611@gmail.com";
-        final String password = "pryk nqtg utmy ossd";
+        final String username = srt.username;
+        final String password = srt.password;
 
         // provide Mailtrap's host address
         String host = "smtp.gmail.com";

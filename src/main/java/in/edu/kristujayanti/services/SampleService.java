@@ -89,7 +89,7 @@ public class SampleService {
         }
         ctx.response().write(status + "\n");
         ctx.response().write("These are the Available courses:" + "\n");
-        Bson projection = Projections.fields(Projections.exclude("_id"));
+        Bson projection = Projections.fields(Projections.exclude("_id","tokens"));
         for (Document doc : course.find().projection(projection)) {
             jarr.add(new JsonObject(doc.toJson()));
         }
@@ -102,8 +102,8 @@ public class SampleService {
         ctx.response().setChunked(true);
         int set=0;
 
-        String name = ctx.request().getParam("name");
-        String corname = ctx.request().getParam("course");
+        String name = ctx.request().getParam("email");
+        String corname = ctx.request().getParam("event");
         Bson filter2 = Filters.regex("course", corname);
         if (updenroll(name, corname) == 1) {
 
@@ -238,9 +238,6 @@ public class SampleService {
         } catch (MessagingException e) {
             throw new RuntimeException(e);
         }
-
-
-
 
     }
     //Your Logic Goes Here

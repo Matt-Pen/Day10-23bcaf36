@@ -102,8 +102,8 @@ public class SampleService {
         ctx.response().setChunked(true);
         int set=0;
 
-        String name = ctx.request().getParam("email");
-        String corname = ctx.request().getParam("event");
+        String name = ctx.request().getParam("name");
+        String corname = ctx.request().getParam("course");
         Bson filter2 = Filters.regex("course", corname);
         if (updenroll(name, corname) == 1) {
 

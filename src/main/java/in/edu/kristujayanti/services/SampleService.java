@@ -89,7 +89,7 @@ public class SampleService {
         }
         ctx.response().write(status + "\n");
         ctx.response().write("These are the Available courses:" + "\n");
-        Bson projection = Projections.fields(Projections.exclude("_id","tokens"));
+        Bson projection = Projections.fields(Projections.exclude("_id"));
         for (Document doc : course.find().projection(projection)) {
             jarr.add(new JsonObject(doc.toJson()));
         }
